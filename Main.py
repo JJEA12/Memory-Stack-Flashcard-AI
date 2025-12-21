@@ -101,7 +101,7 @@ if generate:
                             padding:16px;
                             margin-bottom:12px;
                             border-radius:12px;
-                            background:#f9f9f9;
+                            background:#171717;
                             border:1px solid #e0e0e0;
                         ">
                             <strong>Q:</strong> {card.get("question", "")}<br><br>
@@ -115,3 +115,4 @@ if generate:
                     "Flashcards could not be generated. "
                     "Try rewriting your notes or using clearer text."
                 )
+
