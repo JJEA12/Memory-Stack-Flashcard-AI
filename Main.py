@@ -1,12 +1,15 @@
 import streamlit as st
-from openai import OpenAI
+from google.generativeai import genai
 import json
 
 # ----------------------------------
-# OPENAI CLIENT
+# GEMINI CLIENT
 # ----------------------------------
-# This creates a reusable client object for making API calls
-client = OpenAI()
+genai.configure(
+    api_key=st.secrets["GOOGLE_API_KEY"]
+)
+
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 # ----------------------------------
 # PAGE CONFIG
@@ -58,30 +61,23 @@ if generate:
         st.error("Please paste some notes first.")
     else:
         # Call OpenAI to generate structured flashcards
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "Create flashcards in a JSON array. "
-                        "Each item must be an object with "
-                        "'question' and 'answer' keys. "
-                        "Return ONLY valid JSON."
-                    )
-                },
-                {
-                    "role": "user",
-                    "content": f"Create flashcards from this text:\n\n{text}"
-                }
-            ]
-        )
+       response = model.generate_content(
+    f"""
+    Create flashcards in a JSON array.
 
-        # Extract model output
-        raw_output = response.choices[0].message.content.strip()
+    Each item must be an object with:
+    - "question"
+    - "answer"
 
-        # Remove markdown code fences if the model adds them
-        raw_output = raw_output.replace("```json", "").replace("```", "")
+    Return ONLY valid JSON.
+
+    Create flashcards from this text:
+
+    {text}
+    """
+)
+
+raw_output = response.text.strip()
 
         # Attempt to parse JSON
         try:
