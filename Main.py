@@ -1,6 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
 import json
+import re
 
 # ----------------------------------
 # GEMINI CLIENT
@@ -19,10 +20,16 @@ st.set_page_config(
     layout="wide"
 )
 
+# ----------------------------------
+# HEADER
+# ----------------------------------
 st.title("Memory Stack 🧠")
 st.subheader("Generate helpful flashcards from your notes or text!")
 st.markdown("---")
 
+# ----------------------------------
+# LAYOUT
+# ----------------------------------
 left, right = st.columns([1, 2], gap="large")
 
 with left:
@@ -38,7 +45,7 @@ with right:
     flashcard_area = st.container()
 
 # ----------------------------------
-# BUTTON LOGIC
+# GENERATION LOGIC
 # ----------------------------------
 if generate:
 
@@ -47,27 +54,44 @@ if generate:
     else:
         response = model.generate_content(
             f"""
-            Create flashcards in a JSON array.
+            Create flashcards in JSON format ONLY.
 
-            Each item must be an object with:
-            - "question"
-            - "answer"
+            Output must be a JSON array like:
+            [
+              {{"question": "...", "answer": "..."}}
+            ]
 
-            Return ONLY valid JSON.
+            No explanations. No markdown. No backticks.
 
-            Create flashcards from this text:
-
+            Text:
             {text}
             """
         )
 
         raw_output = response.text.strip()
 
-        try:
-            flashcards = json.loads(raw_output)
-        except json.JSONDecodeError:
-            flashcards = []
+        # DEBUG (optional but useful)
+        st.write("RAW OUTPUT:", raw_output)
 
+        # -----------------------------
+        # CLEAN OUTPUT
+        # -----------------------------
+        cleaned = raw_output.replace("```json", "").replace("```", "").strip()
+
+        # extract JSON array safely
+        match = re.search(r"\[.*\]", cleaned, re.DOTALL)
+
+        flashcards = []
+
+        if match:
+            try:
+                flashcards = json.loads(match.group())
+            except json.JSONDecodeError:
+                flashcards = []
+
+        # ----------------------------------
+        # DISPLAY FLASHCARDS
+        # ----------------------------------
         with flashcard_area:
             if flashcards:
                 for card in flashcards:
@@ -87,4 +111,4 @@ if generate:
                         unsafe_allow_html=True
                     )
             else:
-                st.error("Flashcards could not be generated.")
+                st.error("Flashcards could not be generated. Check RAW OUTPUT above.")
